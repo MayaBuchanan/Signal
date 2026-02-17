@@ -1,0 +1,189 @@
+.signal-board {
+  max-width: 1400px;
+}
+
+.board-header {
+  margin-bottom: 2rem;
+}
+
+.board-header h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.board-subtitle {
+  font-size: 0.9375rem;
+  color: #718096;
+}
+
+.signal-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border-top: 4px solid;
+}
+
+.summary-strong {
+  border-top-color: #48bb78;
+}
+
+.summary-moderate {
+  border-top-color: #ecc94b;
+}
+
+.summary-weak {
+  border-top-color: #f56565;
+}
+
+.summary-no-data {
+  border-top-color: #a0aec0;
+}
+
+.summary-count {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.signal-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.signal-section {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.signal-strong {
+  color: #2f855a;
+}
+
+.signal-moderate {
+  color: #d69e2e;
+}
+
+.signal-weak {
+  color: #e53e3e;
+}
+
+.signal-no-data {
+  color: #718096;
+}
+
+.signal-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.signal-card {
+  background: #f7fafc;
+  border-radius: 6px;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.signal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.signal-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.signal-card-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.25rem;
+}
+
+.signal-card-org {
+  font-size: 0.875rem;
+  color: #718096;
+}
+
+.signal-score {
+  font-size: 1.5rem;
+  font-weight: 700;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.signal-green {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+}
+
+.signal-yellow {
+  background: linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%);
+}
+
+.signal-red {
+  background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+}
+
+.signal-gray {
+  background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%);
+}
+
+.signal-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.signal-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.signal-detail-label {
+  color: #718096;
+  font-weight: 500;
+}
