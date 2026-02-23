@@ -1,6 +1,6 @@
 # Signal - Engagement & Relationship Insight Tool
 
-A professional web application for tracking and managing professional relationships with engagement signals, interaction history, and **cloud synchronization across devices**.
+A web application for tracking and managing professional relationships with engagement signals, interaction history, and **cloud synchronization across devices**.
 
 ## 🎯 Overview
 
