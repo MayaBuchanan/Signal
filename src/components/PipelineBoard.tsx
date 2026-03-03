@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Relationship, Stage, LeadSource, Interaction } from '../types';
 import { getRelationships, getInteractions, saveInteractions } from '../storage';
 import { formatCurrency, followUpLabel, lastTouchedLabel, stageProbability, generateId } from '../utils';
+import { logActivityLogged } from '../auditLog';
 import AddEditInteractionModal from './AddEditInteractionModal';
 import './PipelineBoard.css';
 
@@ -84,6 +85,13 @@ export default function PipelineBoard({ onSelectRelationship, globalSearch = '' 
     };
     const all = getInteractions();
     saveInteractions([...all, newInteraction]);
+
+    // Audit log
+    const rel = relationships.find(r => r.id === relationshipId);
+    if (rel) {
+      logActivityLogged({ id: rel.id, name: rel.name, organization: rel.organization }, newInteraction);
+    }
+
     setLogActivityFor(null);
     loadAll(); // refresh touched map
   };

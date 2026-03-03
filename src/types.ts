@@ -93,9 +93,36 @@ export interface Interaction {
   direction?: Direction;
 }
 
+// ── Audit log ──
+export enum AuditEventType {
+  LeadCreated      = 'lead_created',
+  LeadEdited       = 'lead_edited',
+  StageChanged     = 'stage_changed',
+  FollowUpChanged  = 'followup_changed',
+  NextActionChanged= 'next_action_changed',
+  ActivityLogged   = 'activity_logged',
+  LeadClosedWon    = 'lead_closed_won',
+  LeadClosedLost   = 'lead_closed_lost',
+}
+
+export interface AuditEvent {
+  id: string;
+  type: AuditEventType;
+  relationshipId: string;
+  relationshipName: string;   // denormalised so Feed works without joining
+  organization: string;       // denormalised
+  timestamp: string;          // ISO
+  // Optional payload fields (only the relevant ones are set per event type)
+  detail?: string;            // human-readable summary line
+  oldValue?: string;
+  newValue?: string;
+  interactionType?: string;   // for ActivityLogged events
+}
+
 export interface AppData {
   relationships: Relationship[];
   interactions: Interaction[];
+  auditLog: AuditEvent[];
   version: number;
   schemaVersion: number;       // separate from data version
 }

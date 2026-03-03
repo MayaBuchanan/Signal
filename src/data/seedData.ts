@@ -321,7 +321,101 @@ import {
   getInteractions,
   saveRelationships,
   saveInteractions,
+  saveAuditLog,
 } from '../storage';
+import { AuditEvent, AuditEventType } from '../types';
+
+// ── Seed audit log ──────────────────────────────────────────────────────────
+// Realistic trail matching the lifecycle of each seed relationship.
+// IDs are stable (seed-aud-XX) so loadSeedData() stays idempotent.
+
+function aud(
+  id: string,
+  type: AuditEventType,
+  relId: string,
+  relName: string,
+  org: string,
+  ts: string,
+  detail: string,
+  extra?: Partial<AuditEvent>,
+): AuditEvent {
+  return { id, type, relationshipId: relId, relationshipName: relName, organization: org, timestamp: ts, detail, ...extra };
+}
+
+export const SEED_AUDIT_EVENTS: AuditEvent[] = [
+  // ── Meridian Financial ──────────────────────────────────────────────────
+  aud('seed-aud-01','lead_created' as AuditEventType, REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-01-08T09:14:00Z','Lead created — Prospect · $84,000',{newValue:'Prospect'}),
+  aud('seed-aud-02',AuditEventType.ActivityLogged,    REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-01-09T10:02:00Z','Activity logged — Cold Email: "Quick question about Meridian\'s reconciliation process" · No Response',{interactionType:'Cold Email',newValue:'No Response'}),
+  aud('seed-aud-03',AuditEventType.ActivityLogged,    REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-01-13T11:30:00Z','Activity logged — Follow-up Email · Positive',{interactionType:'Follow-up Email',newValue:'Positive'}),
+  aud('seed-aud-04',AuditEventType.StageChanged,      REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-01-13T11:35:00Z','Stage: Prospect → Qualified',{oldValue:'Prospect',newValue:'Qualified'}),
+  aud('seed-aud-05',AuditEventType.FollowUpChanged,   REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-01-13T11:36:00Z','Follow-up date: none → Jan 20',{newValue:'2026-01-20T00:00:00Z'}),
+  aud('seed-aud-06',AuditEventType.ActivityLogged,    REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-01-20T14:00:00Z','Activity logged — Discovery Call · Positive',{interactionType:'Discovery Call',newValue:'Positive'}),
+  aud('seed-aud-07',AuditEventType.NextActionChanged,  REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-01-20T14:45:00Z','Next action updated',{oldValue:'Book discovery call',newValue:'Send tailored deck + SOX compliance FAQ'}),
+  aud('seed-aud-08',AuditEventType.ActivityLogged,    REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-02-03T15:00:00Z','Activity logged — Demo · Positive',{interactionType:'Demo',newValue:'Positive'}),
+  aud('seed-aud-09',AuditEventType.StageChanged,      REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-02-03T16:00:00Z','Stage: Qualified → Demo Scheduled',{oldValue:'Qualified',newValue:'Demo Scheduled'}),
+  aud('seed-aud-10',AuditEventType.StageChanged,      REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-02-24T10:00:00Z','Stage: Demo Scheduled → Proposal Sent',{oldValue:'Demo Scheduled',newValue:'Proposal Sent'}),
+  aud('seed-aud-11',AuditEventType.ActivityLogged,    REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-02-24T10:30:00Z','Activity logged — Proposal Review: "Proposal walkthrough call" · Positive',{interactionType:'Proposal Review',newValue:'Positive'}),
+  aud('seed-aud-12',AuditEventType.FollowUpChanged,   REL_IDS.meridian,'Jordan Ellis','Meridian Financial','2026-02-24T10:35:00Z','Follow-up date: Feb 10 → Mar 5',{oldValue:'2026-02-10T00:00:00Z',newValue:'2026-03-05T00:00:00Z'}),
+
+  // ── NovaLink Logistics ──────────────────────────────────────────────────
+  aud('seed-aud-13',AuditEventType.LeadCreated,       REL_IDS.novalink,'Priya Sharma','NovaLink Logistics','2026-01-15T08:45:00Z','Lead created — Prospect · $60,000',{newValue:'Prospect'}),
+  aud('seed-aud-14',AuditEventType.ActivityLogged,    REL_IDS.novalink,'Priya Sharma','NovaLink Logistics','2026-01-16T09:00:00Z','Activity logged — Cold Email · No Response',{interactionType:'Cold Email',newValue:'No Response'}),
+  aud('seed-aud-15',AuditEventType.ActivityLogged,    REL_IDS.novalink,'Priya Sharma','NovaLink Logistics','2026-01-27T14:00:00Z','Activity logged — LinkedIn Message · Positive',{interactionType:'LinkedIn Message',newValue:'Positive'}),
+  aud('seed-aud-16',AuditEventType.StageChanged,      REL_IDS.novalink,'Priya Sharma','NovaLink Logistics','2026-01-27T14:05:00Z','Stage: Prospect → Qualified',{oldValue:'Prospect',newValue:'Qualified'}),
+  aud('seed-aud-17',AuditEventType.ActivityLogged,    REL_IDS.novalink,'Priya Sharma','NovaLink Logistics','2026-02-04T11:00:00Z','Activity logged — Discovery Call · Positive',{interactionType:'Discovery Call',newValue:'Positive'}),
+  aud('seed-aud-18',AuditEventType.StageChanged,      REL_IDS.novalink,'Priya Sharma','NovaLink Logistics','2026-02-04T11:45:00Z','Stage: Qualified → Demo Scheduled',{oldValue:'Qualified',newValue:'Demo Scheduled'}),
+  aud('seed-aud-19',AuditEventType.NextActionChanged,  REL_IDS.novalink,'Priya Sharma','NovaLink Logistics','2026-02-28T09:00:00Z','Next action updated',{oldValue:'Schedule discovery call',newValue:'Send demo confirmation + agenda; prep logistics-specific deck'}),
+
+  // ── Apex Health Systems ──────────────────────────────────────────────────
+  aud('seed-aud-20',AuditEventType.LeadCreated,       REL_IDS.apexhealth,'Marcus Webb','Apex Health Systems','2026-02-10T08:30:00Z','Lead created — Qualified (inbound) · $120,000',{newValue:'Qualified'}),
+  aud('seed-aud-21',AuditEventType.ActivityLogged,    REL_IDS.apexhealth,'Marcus Webb','Apex Health Systems','2026-02-10T08:45:00Z','Activity logged — Email: "Re: Demo Request — Apex Health Systems" · Positive',{interactionType:'Email',newValue:'Positive'}),
+  aud('seed-aud-22',AuditEventType.ActivityLogged,    REL_IDS.apexhealth,'Marcus Webb','Apex Health Systems','2026-02-13T10:00:00Z','Activity logged — Discovery Call · Positive',{interactionType:'Discovery Call',newValue:'Positive'}),
+  aud('seed-aud-23',AuditEventType.FollowUpChanged,   REL_IDS.apexhealth,'Marcus Webb','Apex Health Systems','2026-02-13T11:00:00Z','Follow-up date: none → Mar 7',{newValue:'2026-03-07T00:00:00Z'}),
+  aud('seed-aud-24',AuditEventType.NextActionChanged,  REL_IDS.apexhealth,'Marcus Webb','Apex Health Systems','2026-02-13T11:01:00Z','Next action updated',{newValue:'Send case study from Northview Health, schedule discovery call #2 with IT'}),
+
+  // ── Trailstone Capital (closed won) ──────────────────────────────────────
+  aud('seed-aud-25',AuditEventType.LeadCreated,       REL_IDS.trailstone,'Casey Morgan','Trailstone Capital','2026-01-22T10:00:00Z','Lead created — Prospect (referral) · $48,000',{newValue:'Prospect'}),
+  aud('seed-aud-26',AuditEventType.ActivityLogged,    REL_IDS.trailstone,'Casey Morgan','Trailstone Capital','2026-01-23T14:00:00Z','Activity logged — Cold Call · Positive',{interactionType:'Cold Call',newValue:'Positive'}),
+  aud('seed-aud-27',AuditEventType.StageChanged,      REL_IDS.trailstone,'Casey Morgan','Trailstone Capital','2026-01-23T14:10:00Z','Stage: Prospect → Qualified',{oldValue:'Prospect',newValue:'Qualified'}),
+  aud('seed-aud-28',AuditEventType.ActivityLogged,    REL_IDS.trailstone,'Casey Morgan','Trailstone Capital','2026-01-28T15:00:00Z','Activity logged — Demo · Positive',{interactionType:'Demo',newValue:'Positive'}),
+  aud('seed-aud-29',AuditEventType.StageChanged,      REL_IDS.trailstone,'Casey Morgan','Trailstone Capital','2026-01-28T15:45:00Z','Stage: Qualified → Proposal Sent',{oldValue:'Qualified',newValue:'Proposal Sent'}),
+  aud('seed-aud-30',AuditEventType.LeadClosedWon,     REL_IDS.trailstone,'Casey Morgan','Trailstone Capital','2026-02-14T16:00:00Z','Stage: Proposal Sent → Closed Won',{oldValue:'Proposal Sent',newValue:'Closed Won'}),
+
+  // ── IronClad Insurance ──────────────────────────────────────────────────
+  aud('seed-aud-31',AuditEventType.LeadCreated,       REL_IDS.ironclad,'Morgan Price','IronClad Insurance','2026-02-12T09:00:00Z','Lead created — Prospect (referral) · $54,000',{newValue:'Prospect'}),
+  aud('seed-aud-32',AuditEventType.ActivityLogged,    REL_IDS.ironclad,'Morgan Price','IronClad Insurance','2026-02-13T09:30:00Z','Activity logged — Cold Email · Positive',{interactionType:'Cold Email',newValue:'Positive'}),
+  aud('seed-aud-33',AuditEventType.StageChanged,      REL_IDS.ironclad,'Morgan Price','IronClad Insurance','2026-02-13T09:35:00Z','Stage: Prospect → Qualified',{oldValue:'Prospect',newValue:'Qualified'}),
+  aud('seed-aud-34',AuditEventType.ActivityLogged,    REL_IDS.ironclad,'Morgan Price','IronClad Insurance','2026-02-19T11:00:00Z','Activity logged — Discovery Call · Positive',{interactionType:'Discovery Call',newValue:'Positive'}),
+  aud('seed-aud-35',AuditEventType.FollowUpChanged,   REL_IDS.ironclad,'Morgan Price','IronClad Insurance','2026-02-26T10:00:00Z','Follow-up date: none → Mar 3',{newValue:'2026-03-03T00:00:00Z'}),
+
+  // ── Pinnacle Health Network ──────────────────────────────────────────────
+  aud('seed-aud-36',AuditEventType.LeadCreated,       REL_IDS.pinnacle,'Jamie Okafor','Pinnacle Health Network','2026-02-15T08:00:00Z','Lead created — Qualified (inbound) · $150,000',{newValue:'Qualified'}),
+  aud('seed-aud-37',AuditEventType.ActivityLogged,    REL_IDS.pinnacle,'Jamie Okafor','Pinnacle Health Network','2026-02-15T08:08:00Z','Activity logged — Email: "Re: Inbound Demo Request" · Positive',{interactionType:'Email',newValue:'Positive'}),
+  aud('seed-aud-38',AuditEventType.ActivityLogged,    REL_IDS.pinnacle,'Jamie Okafor','Pinnacle Health Network','2026-02-20T14:00:00Z','Activity logged — Discovery Call · Positive',{interactionType:'Discovery Call',newValue:'Positive'}),
+  aud('seed-aud-39',AuditEventType.StageChanged,      REL_IDS.pinnacle,'Jamie Okafor','Pinnacle Health Network','2026-02-20T15:00:00Z','Stage: Qualified → Demo Scheduled',{oldValue:'Qualified',newValue:'Demo Scheduled'}),
+  aud('seed-aud-40',AuditEventType.NextActionChanged,  REL_IDS.pinnacle,'Jamie Okafor','Pinnacle Health Network','2026-02-24T09:00:00Z','Next action updated',{newValue:'Send security questionnaire response + SOC 2 Type II report'}),
+
+  // ── Skyforge Technologies (closed lost) ─────────────────────────────────
+  aud('seed-aud-41',AuditEventType.LeadCreated,       REL_IDS.skyforge,'Riley Chen','Skyforge Technologies','2025-11-10T10:00:00Z','Lead created — Prospect',{newValue:'Prospect'}),
+  aud('seed-aud-42',AuditEventType.StageChanged,      REL_IDS.skyforge,'Riley Chen','Skyforge Technologies','2025-11-19T11:00:00Z','Stage: Prospect → Qualified',{oldValue:'Prospect',newValue:'Qualified'}),
+  aud('seed-aud-43',AuditEventType.ActivityLogged,    REL_IDS.skyforge,'Riley Chen','Skyforge Technologies','2025-12-10T14:00:00Z','Activity logged — Demo · Neutral',{interactionType:'Demo',newValue:'Neutral'}),
+  aud('seed-aud-44',AuditEventType.LeadClosedLost,    REL_IDS.skyforge,'Riley Chen','Skyforge Technologies','2026-02-01T09:00:00Z','Stage: Qualified → Closed Lost — IT change freeze',{oldValue:'Qualified',newValue:'Closed Lost'}),
+
+  // ── Luminary Payments ──────────────────────────────────────────────────
+  aud('seed-aud-45',AuditEventType.LeadCreated,       REL_IDS.luminary,'Devon Park','Luminary Payments','2026-01-28T09:00:00Z','Lead created — Prospect · $72,000',{newValue:'Prospect'}),
+  aud('seed-aud-46',AuditEventType.ActivityLogged,    REL_IDS.luminary,'Devon Park','Luminary Payments','2026-02-11T10:00:00Z','Activity logged — Cold Call · Positive',{interactionType:'Cold Call',newValue:'Positive'}),
+  aud('seed-aud-47',AuditEventType.StageChanged,      REL_IDS.luminary,'Devon Park','Luminary Payments','2026-02-11T10:15:00Z','Stage: Prospect → Qualified',{oldValue:'Prospect',newValue:'Qualified'}),
+  aud('seed-aud-48',AuditEventType.ActivityLogged,    REL_IDS.luminary,'Devon Park','Luminary Payments','2026-02-22T15:00:00Z','Activity logged — Discovery Call · Positive',{interactionType:'Discovery Call',newValue:'Positive'}),
+
+  // ── CrestData / Bridgeport / Verdant / CascadeOps (prospect-stage) ───────
+  aud('seed-aud-49',AuditEventType.LeadCreated,       REL_IDS.crestdata,'Alexis Torres','CrestData Analytics','2026-02-01T08:00:00Z','Lead created — Prospect · $36,000',{newValue:'Prospect'}),
+  aud('seed-aud-50',AuditEventType.ActivityLogged,    REL_IDS.crestdata,'Alexis Torres','CrestData Analytics','2026-02-03T09:00:00Z','Activity logged — Cold Email · No Response',{interactionType:'Cold Email',newValue:'No Response'}),
+  aud('seed-aud-51',AuditEventType.LeadCreated,       REL_IDS.bridgeport,'Sam Delgado','Bridgeport Freight','2026-02-27T17:00:00Z','Lead created — Prospect (event) · $42,000',{newValue:'Prospect'}),
+  aud('seed-aud-52',AuditEventType.ActivityLogged,    REL_IDS.bridgeport,'Sam Delgado','Bridgeport Freight','2026-02-27T17:05:00Z','Activity logged — Meeting: "SCA Conference — intro conversation" · Positive',{interactionType:'Meeting',newValue:'Positive'}),
+  aud('seed-aud-53',AuditEventType.LeadCreated,       REL_IDS.verdant,'Taylor Brooks','Verdant AgriTech','2026-02-05T09:00:00Z','Lead created — Prospect · $28,000',{newValue:'Prospect'}),
+  aud('seed-aud-54',AuditEventType.LeadCreated,       REL_IDS.cascadeops,'Avery Nguyen','CascadeOps','2026-02-18T09:00:00Z','Lead created — Prospect · $32,000',{newValue:'Prospect'}),
+  aud('seed-aud-55',AuditEventType.ActivityLogged,    REL_IDS.cascadeops,'Avery Nguyen','CascadeOps','2026-02-19T09:00:00Z','Activity logged — Cold Email · No Response',{interactionType:'Cold Email',newValue:'No Response'}),
+];
 
 /**
  * Loads seed data into localStorage — ONLY if it hasn't been loaded yet.
@@ -330,15 +424,22 @@ import {
 export function loadSeedData(): { added: number } {
   const existingRels = getRelationships();
   const existingInts = getInteractions();
+  const existingAudit = ([] as AuditEvent[]).concat(
+    (() => { try { return JSON.parse(localStorage.getItem('signal-app-data') || '{}').auditLog || []; } catch { return []; } })()
+  );
 
-  const existingRelIds = new Set(existingRels.map(r => r.id));
-  const existingIntIds = new Set(existingInts.map(i => i.id));
+  const existingRelIds   = new Set(existingRels.map(r => r.id));
+  const existingIntIds   = new Set(existingInts.map(i => i.id));
+  const existingAuditIds = new Set(existingAudit.map((e: AuditEvent) => e.id));
 
-  const newRels = SEED_RELATIONSHIPS.filter(r => !existingRelIds.has(r.id));
-  const newInts = SEED_INTERACTIONS.filter(i => !existingIntIds.has(i.id));
+  const newRels   = SEED_RELATIONSHIPS.filter(r => !existingRelIds.has(r.id));
+  const newInts   = SEED_INTERACTIONS.filter(i => !existingIntIds.has(i.id));
+  const newAudits = SEED_AUDIT_EVENTS.filter(e => !existingAuditIds.has(e.id));
 
-  if (newRels.length > 0) saveRelationships([...existingRels, ...newRels]);
-  if (newInts.length > 0) saveInteractions([...existingInts, ...newInts]);
+  if (newRels.length   > 0) saveRelationships([...existingRels, ...newRels]);
+  if (newInts.length   > 0) saveInteractions([...existingInts, ...newInts]);
+  if (newAudits.length > 0) saveAuditLog([...existingAudit, ...newAudits]
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp)));
 
   return { added: newRels.length };
 }

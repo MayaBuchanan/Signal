@@ -1,5 +1,5 @@
 import { apiClient } from '../api/client';
-import { loadData, saveData } from '../storage';
+import { loadData, saveData, getAuditLog } from '../storage';
 
 interface SyncStatus {
   lastSync: string | null;
@@ -78,12 +78,13 @@ class SyncService {
         direction: i.direction || undefined,
       }));
 
-      // Save to localStorage
+      // Save to localStorage — preserve existing auditLog (cloud doesn't sync audit events)
       saveData({
         relationships: normalizedRelationships,
         interactions: normalizedInteractions,
+        auditLog: getAuditLog(),
         version: 1,
-        schemaVersion: 2,
+        schemaVersion: 3,
       });
 
       const now = new Date().toISOString();

@@ -1,14 +1,15 @@
-import { AppData, Relationship, Interaction, LeadSource, Direction } from './types';
+import { AppData, Relationship, Interaction, LeadSource, Direction, AuditEvent } from './types';
 
 const STORAGE_KEY = 'signal-app-data';
 const CURRENT_VERSION = 1;
-// Bump this when the shape of Relationship or Interaction changes.
+// Bump this when the shape of stored objects changes.
 // Migration runs automatically on next load — existing data is never wiped.
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 const defaultData: AppData = {
   relationships: [],
   interactions: [],
+  auditLog: [],
   version: CURRENT_VERSION,
   schemaVersion: CURRENT_SCHEMA_VERSION,
 };
@@ -44,7 +45,17 @@ function runMigrations(data: AppData): AppData {
   const sv = data.schemaVersion ?? 1;
   let migrated = data;
   if (sv < 2) migrated = migrateToV2(migrated);
+  if (sv < 3) migrated = migrateToV3(migrated);
   return migrated;
+}
+
+// v2 → v3: add auditLog array (empty — seed data provides the demo trail)
+function migrateToV3(data: AppData): AppData {
+  return {
+    ...data,
+    auditLog: (data as AppData & { auditLog?: AuditEvent[] }).auditLog ?? [],
+    schemaVersion: 3,
+  };
 }
 
 // ── Core storage functions ───────────────────────────────────────────────────
@@ -72,6 +83,7 @@ export const loadData = (): AppData => {
     return {
       relationships: parsed.relationships || [],
       interactions: parsed.interactions || [],
+      auditLog: parsed.auditLog || [],
       version: parsed.version || CURRENT_VERSION,
       schemaVersion: parsed.schemaVersion || CURRENT_SCHEMA_VERSION,
     };
@@ -116,4 +128,24 @@ export const getInteractions = (): Interaction[] => {
 
 export const getInteractionsByRelationshipId = (relationshipId: string): Interaction[] => {
   return loadData().interactions.filter(i => i.relationshipId === relationshipId);
+};
+
+// ── Audit log helpers ────────────────────────────────────────────────────────
+
+export const getAuditLog = (): AuditEvent[] => {
+  return loadData().auditLog;
+};
+
+export const saveAuditLog = (auditLog: AuditEvent[]): void => {
+  const data = loadData();
+  data.auditLog = auditLog;
+  saveData(data);
+};
+
+export const appendAuditEvent = (event: AuditEvent): void => {
+  const data = loadData();
+  // Keep at most 500 events; trim oldest first
+  const trimmed = [...data.auditLog, event].slice(-500);
+  data.auditLog = trimmed;
+  saveData(data);
 };

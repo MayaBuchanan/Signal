@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Relationship, Interaction } from '../types';
-import { getRelationships, saveRelationships, getInteractionsByRelationshipId } from '../storage';
+import { Relationship, Interaction, AuditEvent, AuditEventType } from '../types';
+import { getRelationships, saveRelationships, getInteractionsByRelationshipId, getAuditLog } from '../storage';
 import { formatDate, formatCurrency, followUpLabel, relativeDateLabel } from '../utils';
 import InteractionsList from './InteractionsList';
 import './RelationshipDetail.css';
@@ -13,12 +13,14 @@ interface RelationshipDetailProps {
 function RelationshipDetail({ relationshipId, onBack }: RelationshipDetailProps) {
   const [relationship, setRelationship] = useState<Relationship | null>(null);
   const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState('');
 
   useEffect(() => {
     loadRelationship();
     loadInteractions();
+    loadAuditEvents();
   }, [relationshipId]);
 
   const loadRelationship = () => {
@@ -33,6 +35,11 @@ function RelationshipDetail({ relationshipId, onBack }: RelationshipDetailProps)
   const loadInteractions = () => {
     const data = getInteractionsByRelationshipId(relationshipId);
     setInteractions(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  };
+
+  const loadAuditEvents = () => {
+    const events = getAuditLog().filter(e => e.relationshipId === relationshipId);
+    setAuditEvents(events.sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
   };
 
   const handleSaveNotes = () => {
@@ -51,6 +58,7 @@ function RelationshipDetail({ relationshipId, onBack }: RelationshipDetailProps)
 
   const handleInteractionsUpdate = () => {
     loadInteractions();
+    loadAuditEvents();
     // Update the relationship's updatedAt timestamp
     const relationships = getRelationships();
     const updated = relationships.map(r =>
@@ -207,10 +215,44 @@ function RelationshipDetail({ relationshipId, onBack }: RelationshipDetailProps)
       <div className="detail-section">
         <InteractionsList 
           relationshipId={relationshipId}
+          relationshipName={relationship.name}
+          organization={relationship.organization}
           interactions={interactions}
           onUpdate={handleInteractionsUpdate}
         />
       </div>
+
+      {/* ── Compact History timeline ── */}
+      {auditEvents.length > 0 && (
+        <div className="detail-section">
+          <div className="section-header">
+            <h3>History</h3>
+            <span className="history-count">{auditEvents.length} event{auditEvents.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="lead-history-list">
+            {auditEvents.map(e => (
+              <div key={e.id} className={`lh-row lh-${e.type.replace(/_/g, '-')}`}>
+                <span className="lh-icon">
+                  {e.type === AuditEventType.LeadCreated       ? '🆕' :
+                   e.type === AuditEventType.LeadEdited        ? '✏️'  :
+                   e.type === AuditEventType.StageChanged      ? '🔄' :
+                   e.type === AuditEventType.FollowUpChanged   ? '🗓' :
+                   e.type === AuditEventType.NextActionChanged ? '📝' :
+                   e.type === AuditEventType.ActivityLogged    ? '💬' :
+                   e.type === AuditEventType.LeadClosedWon     ? '🏆' :
+                   e.type === AuditEventType.LeadClosedLost    ? '❌' : '•'}
+                </span>
+                <div className="lh-body">
+                  {e.detail && <span className="lh-detail">{e.detail}</span>}
+                </div>
+                <time className="lh-time" dateTime={e.timestamp} title={new Date(e.timestamp).toLocaleString()}>
+                  {formatDate(e.timestamp)}
+                </time>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

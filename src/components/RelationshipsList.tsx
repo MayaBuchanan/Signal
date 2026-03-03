@@ -5,8 +5,30 @@ import { apiClient } from '../api/client';
 import { syncService } from '../services/sync';
 import { loadSeedData } from '../data/seedData';
 import { formatCurrency, followUpLabel, relativeDateLabel } from '../utils';
+import { logLeadCreated, logLeadEdited, logStageChanged, logFollowUpChanged } from '../auditLog';
 import AddEditRelationshipModal from './AddEditRelationshipModal';
 import './RelationshipsList.css';
+
+// Determine which fields changed between old and new relationship data
+function changedFields(
+  old: Relationship,
+  next: Omit<Relationship, 'id' | 'createdAt' | 'updatedAt'>
+): string[] {
+  const fields: string[] = [];
+  if (old.name !== next.name)               fields.push('name');
+  if (old.organization !== next.organization) fields.push('organization');
+  if (old.title !== next.title)             fields.push('title');
+  if (old.industry !== next.industry)       fields.push('industry');
+  if (old.region !== next.region)           fields.push('region');
+  if (old.owner !== next.owner)             fields.push('owner');
+  if (old.dealValue !== next.dealValue)     fields.push('deal value');
+  if (old.leadSource !== next.leadSource)   fields.push('lead source');
+  if (old.leadScore !== next.leadScore)     fields.push('lead score');
+  if (old.closeDate !== next.closeDate)     fields.push('close date');
+  if (old.nextAction !== next.nextAction)   fields.push('next action');
+  if (old.notes !== next.notes)             fields.push('notes');
+  return fields;
+}
 
 interface RelationshipsListProps {
   onSelectRelationship: (id: string) => void;
@@ -99,10 +121,16 @@ function RelationshipsList({ onSelectRelationship, globalSearch = '' }: Relation
 
   const handleAddRelationship = async (relationship: Omit<Relationship, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      await apiClient.createRelationship(relationship);
+      // API returns the created doc; MongoDB uses _id
+      const created = await apiClient.createRelationship(relationship);
+      const newId: string | undefined = created?._id ?? created?.id;
       await syncService.syncFromCloud();
       loadRelationships();
       setShowModal(false);
+      // Log after sync so the id is stable in the audit trail
+      if (newId) {
+        logLeadCreated({ ...relationship, id: newId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as Relationship);
+      }
     } catch (error) {
       console.error('Failed to add relationship:', error);
       alert('Failed to add contact. Please try again.');
@@ -111,7 +139,32 @@ function RelationshipsList({ onSelectRelationship, globalSearch = '' }: Relation
 
   const handleEditRelationship = async (id: string, relationship: Omit<Relationship, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      // Snapshot old values before saving
+      const old = relationships.find(r => r.id === id);
       await apiClient.updateRelationship(id, relationship);
+
+      if (old) {
+        const updated = { ...relationship, id, createdAt: old.createdAt, updatedAt: old.updatedAt } as Relationship;
+
+        // Stage changed?
+        if (old.stage !== relationship.stage) {
+          logStageChanged(updated, old.stage, relationship.stage);
+        }
+
+        // Follow-up date changed?
+        if (old.nextFollowUpDate !== relationship.nextFollowUpDate) {
+          logFollowUpChanged(updated, old.nextFollowUpDate, relationship.nextFollowUpDate);
+        }
+
+        // General field edits (excluding stage/followUp already logged above)
+        const changed = changedFields(old, relationship).filter(
+          f => f !== 'stage' && f !== 'next follow-up date'
+        );
+        if (changed.length) {
+          logLeadEdited(updated, changed);
+        }
+      }
+
       await syncService.syncFromCloud();
       loadRelationships();
       setEditingRelationship(null);

@@ -156,3 +156,73 @@
   margin-bottom: 1rem;
 }
 .detail-next-action .next-action-label { font-weight: 700; color: #92400e; }
+
+/* ── Lead History ───────────────────────────────────────────────────────── */
+.history-count {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  font-weight: 400;
+}
+
+.lead-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+
+.lh-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid #f0f4f8;
+  border-left: 3px solid transparent;
+  transition: background 0.1s;
+  font-size: 0.8rem;
+}
+.lh-row:last-child { border-bottom: none; }
+.lh-row:hover { background: #f7fafc; }
+
+/* Accent colours per event type */
+.lh-row.lh-lead-created       { border-left-color: #48bb78; }
+.lh-row.lh-lead-edited        { border-left-color: #a0aec0; }
+.lh-row.lh-stage-changed      { border-left-color: #667eea; }
+.lh-row.lh-followup-changed   { border-left-color: #ed8936; }
+.lh-row.lh-next-action-changed{ border-left-color: #9f7aea; }
+.lh-row.lh-activity-logged    { border-left-color: #4299e1; }
+.lh-row.lh-lead-closed-won    { border-left-color: #38a169; }
+.lh-row.lh-lead-closed-lost   { border-left-color: #e53e3e; }
+
+.lh-icon {
+  flex-shrink: 0;
+  width: 1.2rem;
+  text-align: center;
+  font-size: 0.85rem;
+  margin-top: 0.05rem;
+}
+
+.lh-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.lh-detail {
+  color: #4a5568;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.lh-time {
+  font-size: 0.7rem;
+  color: #a0aec0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}

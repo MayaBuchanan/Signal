@@ -6,8 +6,9 @@ import RelationshipsList from './components/RelationshipsList';
 import RelationshipDetail from './components/RelationshipDetail';
 import SignalBoard from './components/SignalBoard'; // now MetricsDashboard
 import PipelineBoard from './components/PipelineBoard';
+import ActivityFeed from './components/ActivityFeed';
 
-type Tab = 'pipeline' | 'contacts' | 'signal-board';
+type Tab = 'pipeline' | 'contacts' | 'signal-board' | 'feed';
 
 function App() {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
@@ -56,8 +57,8 @@ function App() {
           <p className="app-subtitle">BDR Pipeline Manager</p>
         </div>
 
-        {/* ── Global search (hidden on detail pages) ── */}
-        {!selectedRelationshipId && activeTab !== 'signal-board' && (
+        {/* ── Global search (hidden on detail pages, metrics, and feed) ── */}
+        {!selectedRelationshipId && activeTab !== 'signal-board' && activeTab !== 'feed' && (
           <div className="header-search">
             <span className="header-search-icon">🔍</span>
             <input
@@ -101,6 +102,12 @@ function App() {
           >
             📈 Metrics
           </button>
+          <button
+            className={`nav-tab ${activeTab === 'feed' ? 'active' : ''}`}
+            onClick={() => handleTabChange('feed')}
+          >
+            📋 Feed
+          </button>
         </nav>
 
         <main className="app-main">
@@ -133,6 +140,15 @@ function App() {
           )}
 
           {activeTab === 'signal-board' && <SignalBoard />}
+
+          {activeTab === 'feed' && (
+            <ActivityFeed
+              onSelectRelationship={(id) => {
+                setSelectedRelationshipId(id);
+                setActiveTab('contacts');
+              }}
+            />
+          )}
         </main>
       </div>
     </div>

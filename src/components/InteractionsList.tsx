@@ -2,16 +2,19 @@ import { useState } from 'react';
 import { Interaction, Outcome, Tone } from '../types';
 import { getInteractions, saveInteractions } from '../storage';
 import { generateId, formatDate } from '../utils';
+import { logActivityLogged } from '../auditLog';
 import AddEditInteractionModal from './AddEditInteractionModal';
 import './InteractionsList.css';
 
 interface InteractionsListProps {
   relationshipId: string;
+  relationshipName: string;
+  organization: string;
   interactions: Interaction[];
   onUpdate: () => void;
 }
 
-function InteractionsList({ relationshipId, interactions, onUpdate }: InteractionsListProps) {
+function InteractionsList({ relationshipId, relationshipName, organization, interactions, onUpdate }: InteractionsListProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingInteraction, setEditingInteraction] = useState<Interaction | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -24,6 +27,7 @@ function InteractionsList({ relationshipId, interactions, onUpdate }: Interactio
       relationshipId
     };
     saveInteractions([...allInteractions, newInteraction]);
+    logActivityLogged({ id: relationshipId, name: relationshipName, organization }, newInteraction);
     setShowModal(false);
     onUpdate();
   };
