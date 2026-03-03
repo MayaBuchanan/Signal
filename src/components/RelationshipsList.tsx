@@ -86,10 +86,14 @@ function RelationshipsList({ onSelectRelationship, globalSearch = '' }: Relation
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [seedMsg, setSeedMsg] = useState('');
+  const [seedLoaded, setSeedLoaded] = useState(false);
 
   useEffect(() => {
     loadRelationships();
     syncFromCloud();
+    // Check if seed data is already present (any stable seed rel ID exists)
+    const existing = getRelationships();
+    if (existing.some(r => r.id === 'seed-rel-01')) setSeedLoaded(true);
   }, []);
 
   const loadRelationships = () => {
@@ -113,11 +117,14 @@ function RelationshipsList({ onSelectRelationship, globalSearch = '' }: Relation
     const { added } = loadSeedData();
     if (added > 0) {
       setSeedMsg(`✅ Loaded ${added} demo contacts`);
+      setSeedLoaded(true);
+      setTimeout(() => setSeedMsg(''), 4000);
     } else {
-      setSeedMsg('Demo data already loaded');
+      setSeedMsg('✅ Demo data already loaded');
+      setSeedLoaded(true);
+      setTimeout(() => setSeedMsg(''), 3000);
     }
     loadRelationships();
-    setTimeout(() => setSeedMsg(''), 3000);
   };
 
   const handleAddRelationship = async (relationship: Omit<Relationship, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -214,8 +221,12 @@ function RelationshipsList({ onSelectRelationship, globalSearch = '' }: Relation
         <h2>Contacts</h2>
         <div className="header-actions">
           {seedMsg && <span className="seed-msg">{seedMsg}</span>}
-          <button className="btn btn-ghost btn-sm" onClick={handleLoadSeed} title="Load demo pipeline data">
-            🌱 Load Demo Data
+          <button
+            className={`btn btn-ghost btn-sm ${seedLoaded ? 'seed-loaded' : ''}`}
+            onClick={handleLoadSeed}
+            title={seedLoaded ? 'Demo data is already loaded' : 'Load demo pipeline data'}
+          >
+            {seedLoaded ? '✅ Demo Loaded' : '🌱 Load Demo Data'}
           </button>
           <button
             className="btn btn-secondary btn-sm"

@@ -284,3 +284,9 @@
   border-color: #a0aec0;
   color: #4a5568;
 }
+.btn-ghost.seed-loaded {
+  border-color: #9ae6b4;
+  color: #276749;
+  background: #f0fff4;
+  cursor: default;
+}
