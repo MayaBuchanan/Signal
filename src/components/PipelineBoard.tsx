@@ -3,6 +3,7 @@ import { Relationship, Stage, LeadSource, Interaction } from '../types';
 import { getRelationships, getInteractions, saveInteractions } from '../storage';
 import { formatCurrency, followUpLabel, lastTouchedLabel, stageProbability, generateId } from '../utils';
 import { logActivityLogged } from '../auditLog';
+import { exportPipelineCSV, exportActivityCSV } from '../exports';
 import AddEditInteractionModal from './AddEditInteractionModal';
 import './PipelineBoard.css';
 
@@ -182,6 +183,16 @@ export default function PipelineBoard({ onSelectRelationship, globalSearch = '' 
           <h2>Pipeline</h2>
           <span className="pb-total-count">{filtered.length} contacts</span>
         </div>
+        {relationships.length > 0 && (
+          <div className="pb-header-actions">
+            <button className="btn btn-secondary btn-sm" onClick={exportPipelineCSV} title="Download pipeline as CSV">
+              📥 Pipeline CSV
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={exportActivityCSV} title="Download all activity as CSV">
+              📥 Activity CSV
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Follow-up Queue ── */}

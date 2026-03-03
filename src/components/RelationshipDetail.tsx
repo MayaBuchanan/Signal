@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Relationship, Interaction, AuditEvent, AuditEventType } from '../types';
 import { getRelationships, saveRelationships, getInteractionsByRelationshipId, getAuditLog } from '../storage';
 import { formatDate, formatCurrency, followUpLabel, relativeDateLabel } from '../utils';
+import { generateAccountBrief, downloadAccountBrief } from '../exports';
 import InteractionsList from './InteractionsList';
 import './RelationshipDetail.css';
 
@@ -16,6 +17,8 @@ function RelationshipDetail({ relationshipId, onBack }: RelationshipDetailProps)
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState('');
+  const [showBrief, setShowBrief] = useState(false);
+  const [briefCopied, setBriefCopied] = useState(false);
 
   useEffect(() => {
     loadRelationship();
@@ -220,6 +223,47 @@ function RelationshipDetail({ relationshipId, onBack }: RelationshipDetailProps)
           interactions={interactions}
           onUpdate={handleInteractionsUpdate}
         />
+      </div>
+
+      {/* ── Account Brief ── */}
+      <div className="detail-section">
+        <div className="section-header">
+          <h3>Account Brief</h3>
+          <div className="brief-header-actions">
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowBrief(b => !b)}
+            >
+              {showBrief ? '▲ Hide' : '▼ Preview'}
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                const md = generateAccountBrief(relationship, interactions);
+                navigator.clipboard.writeText(md).then(() => {
+                  setBriefCopied(true);
+                  setTimeout(() => setBriefCopied(false), 2000);
+                });
+              }}
+              title="Copy Markdown to clipboard"
+            >
+              {briefCopied ? '✅ Copied!' : '📋 Copy'}
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => downloadAccountBrief(relationship, interactions)}
+              title="Download as .md file"
+            >
+              📥 Download .md
+            </button>
+          </div>
+        </div>
+
+        {showBrief && (
+          <pre className="brief-preview">
+            {generateAccountBrief(relationship, interactions)}
+          </pre>
+        )}
       </div>
 
       {/* ── Compact History timeline ── */}

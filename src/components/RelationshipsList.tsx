@@ -6,6 +6,7 @@ import { syncService } from '../services/sync';
 import { loadSeedData } from '../data/seedData';
 import { formatCurrency, followUpLabel, relativeDateLabel } from '../utils';
 import { logLeadCreated, logLeadEdited, logStageChanged, logFollowUpChanged } from '../auditLog';
+import { exportPipelineCSV, exportActivityCSV } from '../exports';
 import AddEditRelationshipModal from './AddEditRelationshipModal';
 import './RelationshipsList.css';
 
@@ -223,6 +224,24 @@ function RelationshipsList({ onSelectRelationship, globalSearch = '' }: Relation
           >
             {isSyncing ? '🔄 Syncing…' : '🔄 Sync'}
           </button>
+          {relationships.length > 0 && (
+            <>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={exportPipelineCSV}
+                title="Download pipeline as CSV"
+              >
+                📥 Pipeline CSV
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={exportActivityCSV}
+                title="Download all activity as CSV"
+              >
+                📥 Activity CSV
+              </button>
+            </>
+          )}
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
             + Add Contact
           </button>

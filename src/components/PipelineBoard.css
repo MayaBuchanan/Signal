@@ -33,6 +33,12 @@
   color: #a0aec0;
 }
 
+.pb-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* ── Filter bar ── */
 .pb-filters {
   display: flex;
