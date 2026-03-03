@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Relationship, Interaction } from '../types';
 import { getRelationships, saveRelationships, getInteractionsByRelationshipId } from '../storage';
-import { formatDate } from '../utils';
+import { formatDate, formatCurrency, followUpLabel, relativeDateLabel } from '../utils';
 import InteractionsList from './InteractionsList';
 import './RelationshipDetail.css';
 
@@ -83,12 +83,72 @@ function RelationshipDetail({ relationshipId, onBack }: RelationshipDetailProps)
 
       <div className="detail-header">
         <div className="detail-header-content">
-          <h2>{relationship.name}</h2>
-          <p className="detail-organization">{relationship.organization}</p>
-          <div className="detail-metadata">
-            <span className={`stage-badge stage-${relationship.stage.toLowerCase().replace(' ', '-')}`}>
+          <div className="detail-title-row">
+            <div>
+              <h2>{relationship.name}</h2>
+              {relationship.title && (
+                <p className="detail-title">{relationship.title}</p>
+              )}
+              <p className="detail-organization">{relationship.organization}</p>
+            </div>
+            <span className={`stage-badge stage-${relationship.stage.toLowerCase().replace(/\s+/g, '-')}`}>
               {relationship.stage}
             </span>
+          </div>
+
+          {/* BDR pipeline fields */}
+          <div className="detail-bdr-row">
+            {relationship.leadScore && (
+              <div className="detail-bdr-chip">
+                <span className="bdr-chip-label">Score</span>
+                <span className="bdr-chip-stars">
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <span key={i} className={i < (relationship.leadScore ?? 0) ? 'star filled' : 'star'}>★</span>
+                  ))}
+                </span>
+              </div>
+            )}
+            {relationship.dealValue != null && relationship.dealValue > 0 && (
+              <div className="detail-bdr-chip chip-green">
+                <span className="bdr-chip-label">Deal</span>
+                <span className="bdr-chip-value">{formatCurrency(relationship.dealValue)}</span>
+              </div>
+            )}
+            {relationship.leadSource && (
+              <div className="detail-bdr-chip chip-blue">
+                <span className="bdr-chip-label">Source</span>
+                <span className="bdr-chip-value">{relationship.leadSource}</span>
+              </div>
+            )}
+            {relationship.closeDate && (() => {
+              const cl = relativeDateLabel(relationship.closeDate);
+              return cl ? (
+                <div className={`detail-bdr-chip ${cl.past ? 'chip-red' : 'chip-yellow'}`}>
+                  <span className="bdr-chip-label">Close</span>
+                  <span className="bdr-chip-value">{cl.text}</span>
+                </div>
+              ) : null;
+            })()}
+            {relationship.nextFollowUpDate && (() => {
+              const fl = followUpLabel(relationship.nextFollowUpDate);
+              return fl ? (
+                <div className={`detail-bdr-chip ${fl.overdue ? 'chip-red' : 'chip-purple'}`}>
+                  <span className="bdr-chip-label">Follow-up</span>
+                  <span className="bdr-chip-value">
+                    {fl.overdue ? '⚠️ ' : '🗓 '}{fl.text}
+                  </span>
+                </div>
+              ) : null;
+            })()}
+          </div>
+
+          {relationship.nextAction && (
+            <div className="detail-next-action">
+              <span className="next-action-label">Next action:</span> {relationship.nextAction}
+            </div>
+          )}
+
+          <div className="detail-metadata">
             <span className="metadata-item">
               <strong>Industry:</strong> {relationship.industry || 'N/A'}
             </span>

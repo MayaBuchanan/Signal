@@ -55,6 +55,14 @@ class SyncService {
         notes: r.notes || '',
         createdAt: r.createdAt,
         updatedAt: r.updatedAt,
+        // New BDR fields — safe defaults if not present on older cloud records
+        title: r.title || '',
+        leadSource: r.leadSource || undefined,
+        leadScore: r.leadScore ?? undefined,
+        dealValue: r.dealValue ?? undefined,
+        closeDate: r.closeDate || undefined,
+        nextFollowUpDate: r.nextFollowUpDate || undefined,
+        nextAction: r.nextAction || '',
       }));
 
       const normalizedInteractions = interactions.map((i: any) => ({
@@ -65,6 +73,9 @@ class SyncService {
         outcome: i.outcome,
         tone: i.tone,
         reflection: i.reflection || '',
+        // New BDR fields
+        subject: i.subject || '',
+        direction: i.direction || undefined,
       }));
 
       // Save to localStorage
@@ -72,6 +83,7 @@ class SyncService {
         relationships: normalizedRelationships,
         interactions: normalizedInteractions,
         version: 1,
+        schemaVersion: 2,
       });
 
       const now = new Date().toISOString();
@@ -114,6 +126,14 @@ class SyncService {
           stage: rel.stage,
           owner: rel.owner,
           notes: rel.notes,
+          // New BDR fields
+          title: rel.title,
+          leadSource: rel.leadSource,
+          leadScore: rel.leadScore,
+          dealValue: rel.dealValue,
+          closeDate: rel.closeDate,
+          nextFollowUpDate: rel.nextFollowUpDate,
+          nextAction: rel.nextAction,
         };
 
         if (cloudRelIds.has(rel.id)) {
@@ -134,6 +154,9 @@ class SyncService {
           outcome: int.outcome,
           tone: int.tone,
           reflection: int.reflection,
+          // New BDR fields
+          subject: int.subject,
+          direction: int.direction,
         };
 
         if (cloudIntIds.has(int.id)) {

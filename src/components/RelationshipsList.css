@@ -139,25 +139,19 @@
   white-space: nowrap;
 }
 
-.stage-exploring {
-  background: #e6f7ff;
-  color: #0066cc;
-}
+/* ── Legacy stage colours ── */
+.stage-exploring    { background: #e6f7ff; color: #0066cc; }
+.stage-active       { background: #d4edda; color: #155724; }
+.stage-at-risk      { background: #fff3cd; color: #856404; }
+.stage-completed    { background: #e2e8f0; color: #4a5568; }
 
-.stage-active {
-  background: #d4edda;
-  color: #155724;
-}
-
-.stage-at-risk {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.stage-completed {
-  background: #e2e8f0;
-  color: #4a5568;
-}
+/* ── BDR pipeline stage colours ── */
+.stage-prospect          { background: #edf2ff; color: #3730a3; }
+.stage-qualified         { background: #ede9fe; color: #6d28d9; }
+.stage-demo-scheduled    { background: #dbeafe; color: #1d4ed8; }
+.stage-proposal-sent     { background: #fef3c7; color: #92400e; }
+.stage-closed-won        { background: #d1fae5; color: #065f46; }
+.stage-closed-lost       { background: #fee2e2; color: #991b1b; }
 
 .card-details {
   display: grid;
@@ -200,4 +194,93 @@
 .btn-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.8125rem;
+}
+
+/* ── Card subtitle (title · org) ── */
+.card-title-block { flex: 1; min-width: 0; }
+.card-subtitle { font-size: 0.8rem; color: #718096; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Meta row: score + deal value + source ── */
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Lead score stars */
+.lead-score .star        { font-size: 0.9rem; color: #cbd5e0; }
+.lead-score .star.filled { color: #f6ad55; }
+.lead-score-empty        { color: #cbd5e0; font-size: 0.8rem; }
+
+/* Deal value chip */
+.deal-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #276749;
+  background: #c6f6d5;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+}
+
+/* Lead source badge */
+.source-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.source-outbound  { background: #bee3f8; color: #2b6cb0; }
+.source-inbound   { background: #c6f6d5; color: #276749; }
+.source-referral  { background: #fefcbf; color: #975a16; }
+.source-event     { background: #e9d8fd; color: #553c9a; }
+.source-other     { background: #e2e8f0; color: #4a5568; }
+
+/* Next action strip */
+.card-next-action {
+  font-size: 0.8rem;
+  color: #4a5568;
+  background: #fffbeb;
+  border-left: 3px solid #f6ad55;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+.next-action-label { font-weight: 700; color: #92400e; }
+
+/* Overdue follow-up date */
+.detail-value.overdue { color: #e53e3e; font-weight: 600; }
+
+/* Filter summary count */
+.filter-summary {
+  align-self: flex-end;
+  font-size: 0.8rem;
+  color: #a0aec0;
+  white-space: nowrap;
+  padding-bottom: 0.4rem;
+}
+
+/* Seed message feedback */
+.seed-msg {
+  font-size: 0.8rem;
+  color: #276749;
+  background: #c6f6d5;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+}
+
+/* Ghost button */
+.btn-ghost {
+  background: transparent;
+  border: 1px dashed #cbd5e0;
+  color: #718096;
+}
+.btn-ghost:hover {
+  background: #f7fafc;
+  border-color: #a0aec0;
+  color: #4a5568;
 }

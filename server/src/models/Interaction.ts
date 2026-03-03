@@ -3,11 +3,14 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IInteraction extends Document {
   userId: mongoose.Types.ObjectId;
   relationshipId: mongoose.Types.ObjectId;
-  type: 'Call' | 'Email' | 'Meeting';
+  type: string; // widened — accepts all legacy + new activity types
   date: Date;
-  outcome: 'Positive' | 'Neutral' | 'No Response';
+  outcome: string;
   tone: 'Energizing' | 'Neutral' | 'Draining';
   reflection: string;
+  // New BDR fields (all optional)
+  subject?: string;
+  direction?: 'Outbound' | 'Inbound';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,7 +31,6 @@ const InteractionSchema: Schema = new Schema(
     },
     type: {
       type: String,
-      enum: ['Call', 'Email', 'Meeting'],
       required: true
     },
     date: {
@@ -37,7 +39,6 @@ const InteractionSchema: Schema = new Schema(
     },
     outcome: {
       type: String,
-      enum: ['Positive', 'Neutral', 'No Response'],
       required: true
     },
     tone: {
@@ -48,7 +49,10 @@ const InteractionSchema: Schema = new Schema(
     reflection: {
       type: String,
       default: ''
-    }
+    },
+    // New BDR fields — optional so existing documents are unaffected
+    subject: { type: String, default: '' },
+    direction: { type: String, enum: ['Outbound', 'Inbound'], default: 'Outbound' },
   },
   {
     timestamps: true

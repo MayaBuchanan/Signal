@@ -97,3 +97,62 @@
   gap: 0.75rem;
   justify-content: flex-end;
 }
+
+/* ── BDR detail header additions ── */
+.detail-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.detail-title {
+  font-size: 0.9rem;
+  color: #718096;
+  margin-bottom: 0.2rem;
+}
+
+.detail-bdr-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.detail-bdr-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  background: #e2e8f0;
+  font-size: 0.8rem;
+}
+.detail-bdr-chip.chip-green  { background: #c6f6d5; }
+.detail-bdr-chip.chip-blue   { background: #bee3f8; }
+.detail-bdr-chip.chip-yellow { background: #fefcbf; }
+.detail-bdr-chip.chip-purple { background: #e9d8fd; }
+.detail-bdr-chip.chip-red    { background: #fed7d7; }
+
+.bdr-chip-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #718096;
+}
+.bdr-chip-value { font-weight: 600; color: #2d3748; }
+.bdr-chip-stars .star        { font-size: 0.85rem; color: #cbd5e0; }
+.bdr-chip-stars .star.filled { color: #f6ad55; }
+
+.detail-next-action {
+  font-size: 0.875rem;
+  color: #4a5568;
+  background: #fffbeb;
+  border-left: 3px solid #f6ad55;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 1rem;
+}
+.detail-next-action .next-action-label { font-weight: 700; color: #92400e; }

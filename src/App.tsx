@@ -4,14 +4,16 @@ import { useAuth } from './context/AuthContext';
 import Auth from './components/Auth';
 import RelationshipsList from './components/RelationshipsList';
 import RelationshipDetail from './components/RelationshipDetail';
-import SignalBoard from './components/SignalBoard';
+import SignalBoard from './components/SignalBoard'; // now MetricsDashboard
+import PipelineBoard from './components/PipelineBoard';
 
-type Tab = 'signal-board' | 'relationships';
+type Tab = 'pipeline' | 'contacts' | 'signal-board';
 
 function App() {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('relationships');
+  const [activeTab, setActiveTab] = useState<Tab>('pipeline');
   const [selectedRelationshipId, setSelectedRelationshipId] = useState<string | null>(null);
+  const [globalSearch, setGlobalSearch] = useState('');
 
   const handleSelectRelationship = (id: string) => {
     setSelectedRelationshipId(id);
@@ -19,6 +21,12 @@ function App() {
 
   const handleBackToList = () => {
     setSelectedRelationshipId(null);
+  };
+
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    setSelectedRelationshipId(null);
+    setGlobalSearch('');
   };
 
   const handleLogout = () => {
@@ -43,10 +51,28 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div>
+        <div className="header-meta">
           <h1>Signal</h1>
-          <p className="app-subtitle">Engagement & Relationship Insight Tool</p>
+          <p className="app-subtitle">BDR Pipeline Manager</p>
         </div>
+
+        {/* ── Global search (hidden on detail pages) ── */}
+        {!selectedRelationshipId && activeTab !== 'signal-board' && (
+          <div className="header-search">
+            <span className="header-search-icon">🔍</span>
+            <input
+              className="header-search-input"
+              type="text"
+              placeholder="Search leads, companies, titles…"
+              value={globalSearch}
+              onChange={e => setGlobalSearch(e.target.value)}
+            />
+            {globalSearch && (
+              <button className="header-search-clear" onClick={() => setGlobalSearch('')} aria-label="Clear search">✕</button>
+            )}
+          </div>
+        )}
+
         <div className="header-user">
           <span className="user-name">👤 {user?.name}</span>
           <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
@@ -57,39 +83,56 @@ function App() {
       
       <div className="app-layout">
         <nav className="app-nav">
-          <button 
-            className={`nav-tab ${activeTab === 'signal-board' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveTab('signal-board');
-              setSelectedRelationshipId(null);
-            }}
+          <button
+            className={`nav-tab ${activeTab === 'pipeline' ? 'active' : ''}`}
+            onClick={() => handleTabChange('pipeline')}
           >
-            Signal Board
+            📊 Pipeline
           </button>
-          <button 
-            className={`nav-tab ${activeTab === 'relationships' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveTab('relationships');
-              setSelectedRelationshipId(null);
-            }}
+          <button
+            className={`nav-tab ${activeTab === 'contacts' ? 'active' : ''}`}
+            onClick={() => handleTabChange('contacts')}
           >
-            Relationships
+            👥 Contacts
+          </button>
+          <button
+            className={`nav-tab ${activeTab === 'signal-board' ? 'active' : ''}`}
+            onClick={() => handleTabChange('signal-board')}
+          >
+            📈 Metrics
           </button>
         </nav>
-        
+
         <main className="app-main">
-          {activeTab === 'signal-board' && <SignalBoard />}
-          
-          {activeTab === 'relationships' && (
+          {activeTab === 'pipeline' && (
             selectedRelationshipId ? (
-              <RelationshipDetail 
+              <RelationshipDetail
                 relationshipId={selectedRelationshipId}
                 onBack={handleBackToList}
               />
             ) : (
-              <RelationshipsList onSelectRelationship={handleSelectRelationship} />
+              <PipelineBoard
+                onSelectRelationship={handleSelectRelationship}
+                globalSearch={globalSearch}
+              />
             )
           )}
+
+          {activeTab === 'contacts' && (
+            selectedRelationshipId ? (
+              <RelationshipDetail
+                relationshipId={selectedRelationshipId}
+                onBack={handleBackToList}
+              />
+            ) : (
+              <RelationshipsList
+                onSelectRelationship={handleSelectRelationship}
+                globalSearch={globalSearch}
+              />
+            )
+          )}
+
+          {activeTab === 'signal-board' && <SignalBoard />}
         </main>
       </div>
     </div>

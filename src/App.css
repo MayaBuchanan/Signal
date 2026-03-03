@@ -33,6 +33,12 @@
   font-weight: 300;
 }
 
+/* Wrapper so h1 + subtitle stay together */
+.header-meta {
+  display: flex;
+  flex-direction: column;
+}
+
 .header-user {
   display: flex;
   align-items: center;
@@ -285,4 +291,98 @@ button {
 .loading-container p {
   color: #718096;
   font-size: 0.875rem;
+}
+
+/* Two-column form rows inside modals */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 480px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Section divider inside modal forms */
+.form-section-divider {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a0aec0;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.35rem;
+  margin: 1.25rem 0 0.75rem;
+}
+
+/* ── Global header search ── */
+.header-search {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 0 0.75rem;
+  flex: 1;
+  max-width: 380px;
+  gap: 0.5rem;
+}
+
+.header-search-icon {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.header-search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 0.875rem;
+  font-family: inherit;
+  padding: 0.55rem 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.header-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.header-search-clear {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.header-search-clear:hover { color: white; }
+
+/* Adjust app-header to allow search to take available space */
+.app-header {
+  gap: 1.25rem;
+}
+
+/* ghost button variant */
+.btn-ghost {
+  background: none;
+  border: 1px dashed #cbd5e0;
+  color: #718096;
+}
+.btn-ghost:hover {
+  background: #f7fafc;
+  border-color: #a0aec0;
+  color: #4a5568;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
 }

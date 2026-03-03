@@ -1,13 +1,53 @@
-import { AppData, Relationship, Interaction } from './types';
+import { AppData, Relationship, Interaction, LeadSource, Direction } from './types';
 
 const STORAGE_KEY = 'signal-app-data';
 const CURRENT_VERSION = 1;
+// Bump this when the shape of Relationship or Interaction changes.
+// Migration runs automatically on next load — existing data is never wiped.
+const CURRENT_SCHEMA_VERSION = 2;
 
 const defaultData: AppData = {
   relationships: [],
   interactions: [],
-  version: CURRENT_VERSION
+  version: CURRENT_VERSION,
+  schemaVersion: CURRENT_SCHEMA_VERSION,
 };
+
+// ── Migration helpers ────────────────────────────────────────────────────────
+
+/**
+ * v1 → v2: add new optional BDR fields to every existing record.
+ * All additions use safe defaults so existing behaviour is unchanged.
+ */
+function migrateToV2(data: AppData): AppData {
+  const relationships: Relationship[] = data.relationships.map(r => ({
+    title: '',
+    leadSource: LeadSource.Outbound,
+    leadScore: undefined,
+    dealValue: undefined,
+    closeDate: undefined,
+    nextFollowUpDate: undefined,
+    nextAction: '',
+    ...r, // existing fields win; only fills gaps
+  }));
+
+  const interactions: Interaction[] = data.interactions.map(i => ({
+    subject: '',
+    direction: Direction.Outbound,
+    ...i, // existing fields win
+  }));
+
+  return { ...data, relationships, interactions, schemaVersion: 2 };
+}
+
+function runMigrations(data: AppData): AppData {
+  const sv = data.schemaVersion ?? 1;
+  let migrated = data;
+  if (sv < 2) migrated = migrateToV2(migrated);
+  return migrated;
+}
+
+// ── Core storage functions ───────────────────────────────────────────────────
 
 export const loadData = (): AppData => {
   try {
@@ -15,20 +55,25 @@ export const loadData = (): AppData => {
     if (!stored) {
       return { ...defaultData };
     }
-    
-    const parsed = JSON.parse(stored) as AppData;
-    
-    // Schema versioning - migrate if needed
-    if (!parsed.version || parsed.version < CURRENT_VERSION) {
-      // Add migration logic here when needed
-      parsed.version = CURRENT_VERSION;
+
+    let parsed = JSON.parse(stored) as AppData;
+
+    // Legacy: ensure schemaVersion exists before migrations
+    if (!parsed.schemaVersion) parsed.schemaVersion = 1;
+
+    // Run any pending migrations
+    if (parsed.schemaVersion < CURRENT_SCHEMA_VERSION) {
+      parsed = runMigrations(parsed);
+      // Persist migrated data immediately so we don't re-migrate on next load
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      console.info(`[storage] Migrated schema to v${CURRENT_SCHEMA_VERSION}`);
     }
-    
-    // Ensure all required fields exist
+
     return {
       relationships: parsed.relationships || [],
       interactions: parsed.interactions || [],
-      version: parsed.version || CURRENT_VERSION
+      version: parsed.version || CURRENT_VERSION,
+      schemaVersion: parsed.schemaVersion || CURRENT_SCHEMA_VERSION,
     };
   } catch (error) {
     console.error('Error loading data from localStorage:', error);
@@ -38,7 +83,10 @@ export const loadData = (): AppData => {
 
 export const saveData = (data: AppData): void => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ...data,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+    }));
   } catch (error) {
     console.error('Error saving data to localStorage:', error);
   }

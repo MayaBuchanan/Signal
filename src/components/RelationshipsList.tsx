@@ -3,15 +3,57 @@ import { Relationship, Stage } from '../types';
 import { getRelationships } from '../storage';
 import { apiClient } from '../api/client';
 import { syncService } from '../services/sync';
-import { formatDate } from '../utils';
+import { loadSeedData } from '../data/seedData';
+import { formatCurrency, followUpLabel, relativeDateLabel } from '../utils';
 import AddEditRelationshipModal from './AddEditRelationshipModal';
 import './RelationshipsList.css';
 
 interface RelationshipsListProps {
   onSelectRelationship: (id: string) => void;
+  globalSearch?: string;
 }
 
-function RelationshipsList({ onSelectRelationship }: RelationshipsListProps) {
+// BDR pipeline stages in funnel order for the filter dropdown
+const STAGE_FILTER_ORDER: (Stage | 'all')[] = [
+  'all',
+  Stage.Prospect,
+  Stage.Qualified,
+  Stage.DemoScheduled,
+  Stage.ProposalSent,
+  Stage.ClosedWon,
+  Stage.ClosedLost,
+  Stage.Exploring,
+  Stage.Active,
+  Stage.AtRisk,
+  Stage.Completed,
+];
+
+const STAGE_LABELS: Record<string, string> = {
+  all: 'All Stages',
+  [Stage.Prospect]: 'Prospect',
+  [Stage.Qualified]: 'Qualified',
+  [Stage.DemoScheduled]: 'Demo Scheduled',
+  [Stage.ProposalSent]: 'Proposal Sent',
+  [Stage.ClosedWon]: '✅ Closed Won',
+  [Stage.ClosedLost]: '❌ Closed Lost',
+  [Stage.Exploring]: 'Exploring (legacy)',
+  [Stage.Active]: 'Active (legacy)',
+  [Stage.AtRisk]: 'At Risk (legacy)',
+  [Stage.Completed]: 'Completed (legacy)',
+};
+
+function LeadScore({ score }: { score?: number }) {
+  if (!score) return <span className="lead-score-empty">—</span>;
+  return (
+    <span className="lead-score" title={`Lead score: ${score}/5`}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <span key={i} className={i < score ? 'star filled' : 'star'}>★</span>
+      ))}
+    </span>
+  );
+}
+
+function RelationshipsList({ onSelectRelationship, globalSearch = '' }: RelationshipsListProps) {
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [stageFilter, setStageFilter] = useState<Stage | 'all'>('all');
@@ -20,11 +62,10 @@ function RelationshipsList({ onSelectRelationship }: RelationshipsListProps) {
   const [editingRelationship, setEditingRelationship] = useState<Relationship | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [seedMsg, setSeedMsg] = useState('');
 
   useEffect(() => {
     loadRelationships();
-    
-    // Sync from cloud on mount
     syncFromCloud();
   }, []);
 
@@ -45,48 +86,50 @@ function RelationshipsList({ onSelectRelationship }: RelationshipsListProps) {
     }
   };
 
+  const handleLoadSeed = () => {
+    const { added } = loadSeedData();
+    if (added > 0) {
+      setSeedMsg(`✅ Loaded ${added} demo contacts`);
+    } else {
+      setSeedMsg('Demo data already loaded');
+    }
+    loadRelationships();
+    setTimeout(() => setSeedMsg(''), 3000);
+  };
+
   const handleAddRelationship = async (relationship: Omit<Relationship, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      // Create in cloud
       await apiClient.createRelationship(relationship);
-      
-      // Refresh from cloud
       await syncService.syncFromCloud();
       loadRelationships();
       setShowModal(false);
     } catch (error) {
       console.error('Failed to add relationship:', error);
-      alert('Failed to add relationship. Please try again.');
+      alert('Failed to add contact. Please try again.');
     }
   };
 
   const handleEditRelationship = async (id: string, relationship: Omit<Relationship, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      // Update in cloud
       await apiClient.updateRelationship(id, relationship);
-      
-      // Refresh from cloud
       await syncService.syncFromCloud();
       loadRelationships();
       setEditingRelationship(null);
     } catch (error) {
       console.error('Failed to update relationship:', error);
-      alert('Failed to update relationship. Please try again.');
+      alert('Failed to update contact. Please try again.');
     }
   };
 
   const handleDeleteRelationship = async (id: string) => {
     try {
-      // Delete from cloud
       await apiClient.deleteRelationship(id);
-      
-      // Refresh from cloud
       await syncService.syncFromCloud();
       loadRelationships();
       setDeleteConfirm(null);
     } catch (error) {
       console.error('Failed to delete relationship:', error);
-      alert('Failed to delete relationship. Please try again.');
+      alert('Failed to delete contact. Please try again.');
     }
   };
 
@@ -94,79 +137,81 @@ function RelationshipsList({ onSelectRelationship }: RelationshipsListProps) {
     setEditingRelationship(relationship);
   };
 
-  // Filter relationships
-  const filteredRelationships = relationships.filter(relationship => {
-    const matchesSearch = searchQuery === '' || 
-      relationship.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      relationship.organization.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      relationship.notes.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStage = stageFilter === 'all' || relationship.stage === stageFilter;
-    
-    const matchesIndustry = industryFilter === 'all' || relationship.industry === industryFilter;
-    
+  const filteredRelationships = relationships.filter(r => {
+    // Merge local search box with the global header search (either can match)
+    const q = (searchQuery || globalSearch).trim().toLowerCase();
+    const matchesSearch =
+      q === '' ||
+      r.name.toLowerCase().includes(q) ||
+      r.organization.toLowerCase().includes(q) ||
+      (r.title ?? '').toLowerCase().includes(q) ||
+      r.notes.toLowerCase().includes(q) ||
+      (r.owner ?? '').toLowerCase().includes(q);
+    const matchesStage = stageFilter === 'all' || r.stage === stageFilter;
+    const matchesIndustry = industryFilter === 'all' || r.industry === industryFilter;
     return matchesSearch && matchesStage && matchesIndustry;
   });
 
-  // Get unique industries
-  const industries = Array.from(new Set(relationships.map(r => r.industry))).filter(Boolean);
+  const industries = Array.from(new Set(relationships.map(r => r.industry))).filter(Boolean).sort();
 
   return (
     <div className="relationships-list">
       <div className="list-header">
-        <h2>Relationships</h2>
+        <h2>Contacts</h2>
         <div className="header-actions">
-          <button 
-            className="btn btn-secondary" 
+          {seedMsg && <span className="seed-msg">{seedMsg}</span>}
+          <button className="btn btn-ghost btn-sm" onClick={handleLoadSeed} title="Load demo pipeline data">
+            🌱 Load Demo Data
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
             onClick={syncFromCloud}
             disabled={isSyncing}
           >
-            {isSyncing ? '🔄 Syncing...' : '🔄 Sync'}
+            {isSyncing ? '🔄 Syncing…' : '🔄 Sync'}
           </button>
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            + Add Relationship
+            + Add Contact
           </button>
         </div>
       </div>
 
       <div className="list-filters">
-        <div className="filter-group">
-          <input
-            type="text"
-            placeholder="Search by name, organization, or notes..."
-            className="search-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        
+        <input
+          type="text"
+          placeholder="Search name, company, title, notes…"
+          className="search-input"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
         <div className="filter-row">
           <div className="filter-group">
-            <label className="filter-label">Stage:</label>
-            <select 
+            <label className="filter-label">Stage</label>
+            <select
               className="filter-select"
               value={stageFilter}
               onChange={(e) => setStageFilter(e.target.value as Stage | 'all')}
             >
-              <option value="all">All Stages</option>
-              {Object.values(Stage).map(stage => (
-                <option key={stage} value={stage}>{stage}</option>
+              {STAGE_FILTER_ORDER.map(s => (
+                <option key={s} value={s}>{STAGE_LABELS[s]}</option>
               ))}
             </select>
           </div>
-
           <div className="filter-group">
-            <label className="filter-label">Industry:</label>
-            <select 
+            <label className="filter-label">Industry</label>
+            <select
               className="filter-select"
               value={industryFilter}
               onChange={(e) => setIndustryFilter(e.target.value)}
             >
               <option value="all">All Industries</option>
-              {industries.map(industry => (
-                <option key={industry} value={industry}>{industry}</option>
+              {industries.map(ind => (
+                <option key={ind} value={ind}>{ind}</option>
               ))}
             </select>
+          </div>
+          <div className="filter-summary">
+            {filteredRelationships.length} of {relationships.length} contacts
           </div>
         </div>
       </div>
@@ -174,76 +219,97 @@ function RelationshipsList({ onSelectRelationship }: RelationshipsListProps) {
       {filteredRelationships.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">👥</div>
-          <h3>No relationships found</h3>
-          <p>{relationships.length === 0 
-            ? 'Get started by adding your first relationship'
-            : 'Try adjusting your search or filters'
-          }</p>
+          <h3>{relationships.length === 0 ? 'No contacts yet' : 'No contacts match your filters'}</h3>
+          <p>{relationships.length === 0
+            ? 'Add a contact manually or load demo pipeline data to explore'
+            : 'Try adjusting your search or filters'}
+          </p>
           {relationships.length === 0 && (
-            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-              Add Your First Relationship
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Add Contact</button>
+              <button className="btn btn-secondary" onClick={handleLoadSeed}>🌱 Load Demo Data</button>
+            </div>
           )}
         </div>
       ) : (
         <div className="relationships-grid">
-          {filteredRelationships.map(relationship => (
-            <div key={relationship.id} className="relationship-card">
+          {filteredRelationships.map(r => (
+            <div key={r.id} className="relationship-card">
               <div className="card-header">
-                <div>
-                  <h3 
-                    className="card-title"
-                    onClick={() => onSelectRelationship(relationship.id)}
-                  >
-                    {relationship.name}
+                <div className="card-title-block">
+                  <h3 className="card-title" onClick={() => onSelectRelationship(r.id)}>
+                    {r.name}
                   </h3>
-                  <p className="card-organization">{relationship.organization}</p>
+                  <p className="card-subtitle">
+                    {r.title ? `${r.title} · ` : ''}{r.organization}
+                  </p>
                 </div>
-                <span className={`stage-badge stage-${relationship.stage.toLowerCase().replace(' ', '-')}`}>
-                  {relationship.stage}
+                <span className={`stage-badge stage-${r.stage.toLowerCase().replace(/\s+/g, '-')}`}>
+                  {r.stage}
                 </span>
               </div>
-              
-              <div className="card-details">
-                <div className="card-detail-item">
-                  <span className="detail-label">Industry:</span>
-                  <span className="detail-value">{relationship.industry || 'N/A'}</span>
-                </div>
-                <div className="card-detail-item">
-                  <span className="detail-label">Region:</span>
-                  <span className="detail-value">{relationship.region || 'N/A'}</span>
-                </div>
-                <div className="card-detail-item">
-                  <span className="detail-label">Owner:</span>
-                  <span className="detail-value">{relationship.owner || 'N/A'}</span>
-                </div>
-                <div className="card-detail-item">
-                  <span className="detail-label">Updated:</span>
-                  <span className="detail-value">{formatDate(relationship.updatedAt)}</span>
-                </div>
+
+              <div className="card-meta-row">
+                <LeadScore score={r.leadScore} />
+                {r.dealValue != null && r.dealValue > 0 && (
+                  <span className="deal-value">{formatCurrency(r.dealValue)}</span>
+                )}
+                {r.leadSource && (
+                  <span className={`source-badge source-${r.leadSource.toLowerCase()}`}>{r.leadSource}</span>
+                )}
               </div>
 
-              {relationship.notes && (
-                <p className="card-notes">{relationship.notes.substring(0, 100)}{relationship.notes.length > 100 ? '...' : ''}</p>
+              <div className="card-details">
+                {r.industry && (
+                  <div className="card-detail-item">
+                    <span className="detail-label">Industry</span>
+                    <span className="detail-value">{r.industry}</span>
+                  </div>
+                )}
+                {r.region && (
+                  <div className="card-detail-item">
+                    <span className="detail-label">Region</span>
+                    <span className="detail-value">{r.region}</span>
+                  </div>
+                )}
+                {r.nextFollowUpDate && (() => {
+                  const fl = followUpLabel(r.nextFollowUpDate);
+                  return fl ? (
+                    <div className="card-detail-item">
+                      <span className="detail-label">Follow-up</span>
+                      <span className={`detail-value ${fl.overdue ? 'overdue' : ''}`}>
+                        {fl.overdue ? '⚠️ ' : '🗓 '}{fl.text}
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
+                {r.closeDate && (() => {
+                  const cl = relativeDateLabel(r.closeDate);
+                  return cl ? (
+                    <div className="card-detail-item">
+                      <span className="detail-label">Close</span>
+                      <span className={`detail-value ${cl.past ? 'overdue' : ''}`}>
+                        {cl.text}
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+
+              {r.nextAction && (
+                <p className="card-next-action">
+                  <span className="next-action-label">Next:</span> {r.nextAction}
+                </p>
               )}
 
               <div className="card-actions">
-                <button 
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => onSelectRelationship(relationship.id)}
-                >
-                  View Details
+                <button className="btn btn-secondary btn-sm" onClick={() => onSelectRelationship(r.id)}>
+                  View
                 </button>
-                <button 
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => openEditModal(relationship)}
-                >
+                <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(r)}>
                   Edit
                 </button>
-                <button 
-                  className="btn btn-danger btn-sm"
-                  onClick={() => setDeleteConfirm(relationship.id)}
-                >
+                <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm(r.id)}>
                   Delete
                 </button>
               </div>
@@ -253,20 +319,15 @@ function RelationshipsList({ onSelectRelationship }: RelationshipsListProps) {
       )}
 
       {showModal && (
-        <AddEditRelationshipModal
-          onClose={() => setShowModal(false)}
-          onSave={handleAddRelationship}
-        />
+        <AddEditRelationshipModal onClose={() => setShowModal(false)} onSave={handleAddRelationship} />
       )}
-
       {editingRelationship && (
         <AddEditRelationshipModal
           relationship={editingRelationship}
           onClose={() => setEditingRelationship(null)}
-          onSave={(data: Omit<Relationship, 'id' | 'createdAt' | 'updatedAt'>) => handleEditRelationship(editingRelationship.id, data)}
+          onSave={(data) => handleEditRelationship(editingRelationship.id, data)}
         />
       )}
-
       {deleteConfirm && (
         <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: '400px' }}>
@@ -274,15 +335,11 @@ function RelationshipsList({ onSelectRelationship }: RelationshipsListProps) {
               <h3 className="modal-title">Confirm Delete</h3>
             </div>
             <div className="modal-body">
-              <p>Are you sure you want to delete this relationship? This action cannot be undone.</p>
+              <p>Are you sure you want to delete this contact? This cannot be undone.</p>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>
-                Cancel
-              </button>
-              <button className="btn btn-danger" onClick={() => handleDeleteRelationship(deleteConfirm)}>
-                Delete
-              </button>
+              <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => handleDeleteRelationship(deleteConfirm)}>Delete</button>
             </div>
           </div>
         </div>

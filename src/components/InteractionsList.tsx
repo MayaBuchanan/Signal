@@ -92,11 +92,15 @@ function InteractionsList({ relationshipId, interactions, onUpdate }: Interactio
         </div>
       ) : (
         <div className="interactions-timeline">
-          {interactions.map(interaction => (
-            <div key={interaction.id} className="interaction-item">
+          {interactions.map(interaction => (              <div key={interaction.id} className="interaction-item">
               <div className="interaction-header">
                 <div className="interaction-type-date">
                   <span className="interaction-type">{interaction.type}</span>
+                  {interaction.direction && (
+                    <span className={`interaction-direction direction-${interaction.direction.toLowerCase()}`}>
+                      {interaction.direction === 'Outbound' ? '↑' : '↓'} {interaction.direction}
+                    </span>
+                  )}
                   <span className="interaction-date">{formatDate(interaction.date)}</span>
                 </div>
                 <div className="interaction-badges">
@@ -108,7 +112,11 @@ function InteractionsList({ relationshipId, interactions, onUpdate }: Interactio
                   </span>
                 </div>
               </div>
-              
+
+              {interaction.subject && (
+                <p className="interaction-subject">"{interaction.subject}"</p>
+              )}
+
               {interaction.reflection && (
                 <p className="interaction-reflection">{interaction.reflection}</p>
               )}
